@@ -1,6 +1,10 @@
-# codemodGPT README
+<div style="text-align: center;">
+  <img src="icon.png" alt="Icon" width="200"/>
+</div>
 
-This extension learns from existing codemod example, and apply the same to selected files.
+# codemodGPT
+
+This vscode extension learns from existing codemod example, and apply the same to selected files.
 
 ## Demo
 
