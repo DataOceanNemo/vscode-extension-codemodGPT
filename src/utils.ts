@@ -1,9 +1,9 @@
+import { exec } from 'child_process';
 import * as path from 'path';
 import { join, relative } from 'path';
 import * as vscode from 'vscode';
 import { ExtensionContext, ExtensionMode, Uri, Webview } from 'vscode';
 import { ComponentConverter } from './webview/utils/componentConverter';
-
 
 // Get the workspace root path
 const workspaceFolder = vscode.workspace.workspaceFolders ? path.posix.normalize(vscode.workspace.workspaceFolders[0].uri.fsPath) : '';
@@ -60,7 +60,7 @@ export const createStoriesFiles = async (fileNodes: string[], openaiApiKey: stri
 
       } catch (error) {
         console.error(error);
-        vscode.window.showErrorMessage(`Error processing file: ${filePath}. Error message: : ${error instanceof Error ? error.message :
+        vscode.window.showErrorMessage(`Error processing file: ${filePath}. Error message: ${error instanceof Error ? error.message :
           'Unknown error'
           }`);
       }
@@ -97,4 +97,29 @@ export const getWebviewContent = (context: ExtensionContext, webview: Webview) =
 		<script src="${scriptUrl}"></script>
 	</body>
 	</html>`;
+}
+
+
+export const getGitDiff = (): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+      reject('No workspace folder found');
+
+      vscode.window.showErrorMessage(`Error message: No workspace folder found.`);
+      return;
+    }
+
+    const rootPath = workspaceFolders[0].uri.fsPath;
+
+    exec('git diff', { cwd: rootPath }, (error, stdout, stderr) => {
+      if (error) {
+        reject(`Error: ${stderr}`);
+
+        vscode.window.showErrorMessage(`Error message: ${stderr}`);
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
 }

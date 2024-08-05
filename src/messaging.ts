@@ -1,7 +1,8 @@
 import { MessageHandlerData } from '@estruyf/vscode';
 import * as vscode from 'vscode';
-import { createStoriesFiles, findReactTsxWithoutStories } from './utils';
+import { createStoriesFiles, findReactTsxWithoutStories, getGitDiff } from './utils';
 import { MessageCommands } from './webview/utils/constants';
+import { whatDidYouLearn } from './webview/utils/openAI';
 
 export interface IMessage {
   command: MessageCommands;
@@ -12,6 +13,34 @@ export interface IMessage {
 export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscode.ExtensionContext) =>
   async (message: IMessage) => {
     const { command, requestId, payload } = message;
+
+    // Check if OpenAI API key is set
+    let openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      // Try to get it from VS Code's credential storage
+      openaiApiKey = await context.secrets.get('OPENAI_API_KEY');
+      if (!openaiApiKey) {
+        // Prompt user to input API key
+        const inputApiKey = await vscode.window.showInputBox({
+          prompt: 'Enter your OpenAI API Key',
+          ignoreFocusOut: true,
+          placeHolder: 'sk-...',
+          password: true,
+        });
+
+        if (inputApiKey) {
+          openaiApiKey = inputApiKey;
+          // store the API key in VS Code's credential storage
+          await context.secrets.store('OPENAI_API_KEY', inputApiKey);
+        } else {
+          vscode.window.showErrorMessage('OpenAI API Key is required for this step.');
+          // Send a response back to the webview
+          panel.webview.postMessage({ command: MessageCommands.GENERATE_RESULT, result: {} });
+
+          return;
+        }
+      }
+    }
 
     switch (command) {
       case MessageCommands.GET_GLOBAL_STATE:
@@ -37,6 +66,18 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
         } as MessageHandlerData<string>);
         break;
 
+      case MessageCommands.LEARN:
+        const gifDiff = await getGitDiff();
+
+        const answer = await whatDidYouLearn({ question: gifDiff, openaiApiKey, selectedModel: context.globalState.get('selectedModel') });
+
+        panel.webview.postMessage({
+          command,
+          requestId,
+          payload: answer
+        } as MessageHandlerData<string>);
+        break;
+
       case MessageCommands.STORE_DATA:
         // Store data
         payload.selectedModel && context.globalState.update('selectedModel', payload.selectedModel);
@@ -46,33 +87,7 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
 
       case MessageCommands.GENERATE_REQUEST:
         vscode.window.showInformationMessage('Calling chatGPT to generate stories...');
-        // Check if OpenAI API key is set
-        let openaiApiKey = process.env.OPENAI_API_KEY;
-        if (!openaiApiKey) {
-          // Try to get it from VS Code's credential storage
-          openaiApiKey = await context.secrets.get('OPENAI_API_KEY');
-          if (!openaiApiKey) {
-            // Prompt user to input API key
-            const inputApiKey = await vscode.window.showInputBox({
-              prompt: 'Enter your OpenAI API Key',
-              ignoreFocusOut: true,
-              placeHolder: 'sk-...',
-              password: true,
-            });
 
-            if (inputApiKey) {
-              openaiApiKey = inputApiKey;
-              // store the API key in VS Code's credential storage
-              await context.secrets.store('OPENAI_API_KEY', inputApiKey);
-            } else {
-              vscode.window.showErrorMessage('OpenAI API Key is required to generate stories.');
-              // Send a response back to the webview
-              panel.webview.postMessage({ command: MessageCommands.GENERATE_RESULT, result: {} });
-
-              return;
-            }
-          }
-        }
         await createStoriesFiles(JSON.parse(payload.msg), openaiApiKey, context.globalState.get('template'), context.globalState.get('selectedModel'));
 
         vscode.window.showInformationMessage('Generation completed!');

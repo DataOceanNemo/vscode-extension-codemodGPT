@@ -13,6 +13,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import Markdown from "react-markdown";
 import FileTree from "./components/FileTree";
 import "./styles.css";
 import {
@@ -30,6 +31,9 @@ export const App: FunctionComponent<
   // const [message, setMessage] = useState<string>(JSON.stringify(mockData));
   const [message, setMessage] = useState<string>("");
   const [scanning, setScanning] = useState<boolean>(false);
+
+  const [learningResult, setLearningResult] = useState<string>("");
+  const [learning, setLearning] = useState<boolean>(false);
 
   const [selectedModel, setSelectedModel] = useState(models[0].value);
   const [excludePatterns, setExcludePatterns] = useState(
@@ -73,6 +77,15 @@ export const App: FunctionComponent<
       });
   };
 
+  const learn = () => {
+    setLearningResult("");
+    setLearning(true);
+    messageHandler.request<string>(MessageCommands.LEARN).then((msg) => {
+      setLearningResult(msg);
+      setLearning(false);
+    });
+  };
+
   useEffect(() => {
     messageHandler
       .request<string>(MessageCommands.GET_GLOBAL_STATE)
@@ -90,20 +103,13 @@ export const App: FunctionComponent<
       <h1>Welcome to codemodGPT</h1>
 
       <p>
-        Inspired by{" "}
-        <a href="https://storybook.js.org/blog/build-your-own-storybook-gpt/">
-          https://storybook.js.org/blog/build-your-own-storybook-gpt/
-        </a>
-      </p>
-      <p>
-        This extension assists you in scanning your React .tsx components of
-        current workspace and automates the generation of Storybook stories
-        using OpenAI's GPT model gpt-3.5-turbo.
+        This vscode extension learns from existing codemod example, and apply
+        the same to selected files.
       </p>
 
       <div className="app__actions">
-        <VSCodeButton appearance="primary" onClick={scan} disabled={scanning}>
-          {scanning ? "Scanning..." : "Scan"}
+        <VSCodeButton appearance="primary" onClick={learn} disabled={learning}>
+          {learning ? "Learning..." : "Learn from git diff"}
         </VSCodeButton>
 
         <VSCodeButton
@@ -113,6 +119,18 @@ export const App: FunctionComponent<
           {isCollapsed ? "Show Settings" : "Hide Settings"}
         </VSCodeButton>
       </div>
+
+      <VSCodeDivider />
+
+      <Markdown>{learningResult}</Markdown>
+
+      {/* <div className="app__actions">
+        <VSCodeButton appearance="primary" onClick={scan} disabled={scanning}>
+          {scanning ? "Scanning..." : "Scan"}
+        </VSCodeButton>
+
+       
+      </div> */}
 
       <div className="settings">
         {!isCollapsed && (

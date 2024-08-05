@@ -8,18 +8,17 @@ This vscode extension learns from existing codemod example, and apply the same t
 
 ## Demo
 
-Using MUI source code as example:
-![Demo](demo/demo.gif)
+coming soon...
 
 ## Features
 
 - **Webview Panel**: Open a webview panel to interact with the extension.
-- **Find React Components**: Automatically find all React `.tsx` files that do not have corresponding Storybook stories.
-- **Generate Stories**: Use OpenAI's GPT model to generate Storybook stories for your React components.
+- **Learn from git diff**: Automatically learn codemod pattern from `git diff`.
+- **Apply codemod**: Apply codemod pattern to selected files.
 
 ## Requirements
 
-- **OpenAI API Key**: The extension requires an OpenAI API key to generate stories. You can set this key through the extension's prompts.
+- **OpenAI API Key**: The extension requires an OpenAI API key to work. You can set this key through the extension's prompts.
 
 ## Commands
 
@@ -32,8 +31,8 @@ The extension provides the following commands:
 ## How to Use
 
 1. **Open the Webview Panel**: Use the command `codemodGPT: Open` to open the webview panel.
-2. **Find Components Without Stories**: The webview will automatically find React components that do not have corresponding Storybook stories.
-3. **Generate Stories**: Use the webview interface to generate stories for your components. If the OpenAI API key is not set, you will be prompted to enter it.
+2. **Learn from git diff**: Click `Learn` button to ask chatGPT to automatically learn codemod pattern from `git diff`.
+3. **Apply codemod**: Use the webview interface to select files and apply codemod.
 4. **Manage API Key**: Use `codemodGPT: Delete OpenAI API Key` to delete the stored API key or `codemodGPT: Reset OpenAI API Key` to update it.
 
 ## Release Notes
