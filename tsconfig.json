@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "outDir": "out",
+    "types": ["node"],
+    "module": "CommonJS",
+    "target": "ES2021",
+    "moduleResolution": "node",
+    "lib": ["dom", "ES2021", "dom.iterable", "webworker"],
+    "sourceMap": true,
+    "rootDir": "src",
+    "strict": true,
+    "jsx": "react"
+  }
+}
