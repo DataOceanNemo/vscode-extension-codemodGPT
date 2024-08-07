@@ -8,7 +8,7 @@ This vscode extension learns from existing codemod example, and apply the same t
 
 ## Demo
 
-coming soon...
+![Demo](demo/demo.gif)
 
 ## Features
 
