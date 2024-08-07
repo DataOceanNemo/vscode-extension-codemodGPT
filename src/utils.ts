@@ -1,73 +1,21 @@
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 import { join, relative } from 'path';
 import * as vscode from 'vscode';
 import { ExtensionContext, ExtensionMode, Uri, Webview } from 'vscode';
-import { ComponentConverter } from './webview/utils/componentConverter';
 
 // Get the workspace root path
 const workspaceFolder = vscode.workspace.workspaceFolders ? path.posix.normalize(vscode.workspace.workspaceFolders[0].uri.fsPath) : '';
 
-export const findReactTsxWithoutStories = async (excludePatterns: string[]) => {
-  // Search for all .tsx files excluding .stories.tsx and .test.tsx
-  const allComponents = await vscode.workspace.findFiles('**/*.tsx', `{${excludePatterns.join(',')},**/*.stories.*}`);
-  const allStories = await vscode.workspace.findFiles('**/*.stories.{tsx,ts}', `{${excludePatterns.join(',')}}`);
-
-  // Normalize paths and prepare to check for missing stories
-  let storyComponents = new Set();
-  allStories.forEach(storyFile => {
-    const normalizedPath = storyFile.fsPath.replace(/\.stories\.(tsx|ts)$/, '.tsx');
-    storyComponents.add(normalizedPath);
-  });
-
-  // Filter components without corresponding stories
-  const componentsWithoutStories = allComponents.filter(component =>
-    !storyComponents.has(component.fsPath)
-  );
+export const scanWorkspace = async (excludePatterns: string[]) => {
+  const allComponents = await vscode.workspace.findFiles('**/*.{tsx,ts}', `{${excludePatterns.join(',')}}`);
 
   // Calculate relative paths
-  const filePaths = componentsWithoutStories.map(file => relative(workspaceFolder, (file as vscode.Uri).fsPath).replace(/\\/g, '/'));
+  const filePaths = allComponents.map(file => relative(workspaceFolder, (file as vscode.Uri).fsPath).replace(/\\/g, '/'));
 
   return filePaths;
 }
-
-
-export const createStoriesFiles = async (fileNodes: string[], openaiApiKey: string, template = "", selectedModel = 'gpt-3.5-turbo') => {
-  for (const node of fileNodes) {
-    if (node.endsWith('.tsx')) {
-      const filePath = path.resolve(workspaceFolder, node);
-      const storyFilePath = filePath.replace(/\.tsx$/, '.stories.tsx');
-
-      try {
-        const fileUri = vscode.Uri.file(filePath);
-        const storyFileUri = vscode.Uri.file(storyFilePath);
-
-        const fileContent = await vscode.workspace.fs.readFile(fileUri);
-
-        // Convert Uint8Array to string using TextDecoder
-        const textDecoder = new TextDecoder('utf-8');
-        const fileContentString = textDecoder.decode(fileContent);
-
-        const story = await ComponentConverter({
-          component: fileContentString,
-          openaiApiKey: openaiApiKey,
-          selectedModel,
-          template
-        });
-
-        const textEncoder = new TextEncoder();
-        await vscode.workspace.fs.writeFile(storyFileUri, textEncoder.encode(story || ''));
-
-      } catch (error) {
-        console.error(error);
-        vscode.window.showErrorMessage(`Error processing file: ${filePath}. Error message: ${error instanceof Error ? error.message :
-          'Unknown error'
-          }`);
-      }
-    }
-  }
-};
-
 
 export const getWebviewContent = (context: ExtensionContext, webview: Webview) => {
   const jsFile = "webview.js";
@@ -112,7 +60,7 @@ export const getGitDiff = (): Promise<string> => {
 
     const rootPath = workspaceFolders[0].uri.fsPath;
 
-    exec('git diff', { cwd: rootPath }, (error, stdout, stderr) => {
+    exec('git diff --cached', { cwd: rootPath }, (error, stdout, stderr) => {
       if (error) {
         reject(`Error: ${stderr}`);
 
@@ -123,3 +71,61 @@ export const getGitDiff = (): Promise<string> => {
     });
   });
 }
+
+export const stripCodeBlockAnnotations = (text: string) => {
+  return text.replace(/```(typescript|javascript|tsx|jsx|js)?\n([\s\S]*?)\n```/g, '$2');
+}
+
+const writeCodemodToWorkspace = (codemod: string) => {
+  const codemodFilePath = path.resolve(workspaceFolder, 'codemod.js');
+
+  fs.writeFileSync(codemodFilePath, codemod);
+
+  return codemodFilePath;
+};
+
+const executeCodemod = (codemodFilePath: string, workspaceFiles: string) => {
+  return new Promise((resolve, reject) => {
+    const args = ['--workspaceFiles', workspaceFiles];
+    const command = spawn('node', [codemodFilePath, ...args]);
+
+    let output = '';
+    command.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    command.stderr.on('data', (data) => {
+      output += data.toString();
+    });
+
+    command.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Process exited with code ${code}`));
+      } else {
+        resolve(output);
+      }
+    });
+
+    command.on('error', (error) => {
+      reject(error);
+    });
+  });
+};
+
+export const applyCodemod = async (codemod: string, fileNodes: string[]) => {
+  // Save codemod script to a file in the workspace root
+  const codemodFilePath = writeCodemodToWorkspace(codemod);
+
+  // Resolve the paths of the workspace files
+  const workspaceFiles = fileNodes.map((node) => path.resolve(workspaceFolder, node));
+
+  // Execute the codemod script
+  try {
+    await executeCodemod(codemodFilePath, JSON.stringify(workspaceFiles));
+  } catch (error) {
+    throw error;
+  } finally {
+    // delete the codemod file from the workspace root
+    fs.unlinkSync(codemodFilePath);
+  }
+};

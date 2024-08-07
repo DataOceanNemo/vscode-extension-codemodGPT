@@ -18,7 +18,7 @@ import FileTree from "./components/FileTree";
 import "./styles.css";
 import {
   defaultExcludePatterns,
-  defaultTemplate,
+  defaultPrompt,
   MessageCommands,
   models,
 } from "./utils/constants";
@@ -35,13 +35,19 @@ export const App: FunctionComponent<
   const [learningResult, setLearningResult] = useState<string>("");
   const [learning, setLearning] = useState<boolean>(false);
 
+  const [codemod, setCodemod] = useState<string>("");
+  const [generating, setGenerating] = useState<boolean>(false);
+
   const [selectedModel, setSelectedModel] = useState(models[0].value);
   const [excludePatterns, setExcludePatterns] = useState(
     defaultExcludePatterns.join("\n")
   );
-  const [template, setTemplate] = useState(defaultTemplate);
+  const [prompt, setPrompt] = useState(defaultPrompt);
 
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isLearningResultCollapsed, setIsLearningResultCollapsed] =
+    useState(false);
+  const [isCodemodCollapsed, setIsCodeModCollapsed] = useState(false);
 
   const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedModel(e.target.value);
@@ -59,10 +65,10 @@ export const App: FunctionComponent<
     });
   };
 
-  const handleTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTemplate(e.target.value);
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPrompt(e.target.value);
     messageHandler.send(MessageCommands.STORE_DATA, {
-      template: e.target.value,
+      prompt: e.target.value,
     });
   };
 
@@ -86,16 +92,36 @@ export const App: FunctionComponent<
     });
   };
 
+  const generate = () => {
+    setCodemod("");
+    setGenerating(true);
+    messageHandler.request<string>(MessageCommands.GENERATE).then((msg) => {
+      setCodemod(msg);
+      setGenerating(false);
+    });
+  };
+
   useEffect(() => {
     messageHandler
       .request<string>(MessageCommands.GET_GLOBAL_STATE)
       .then((msg) => {
-        const { selectedModel, excludePatterns, template } = JSON.parse(msg);
+        const { selectedModel, excludePatterns, prompt } = JSON.parse(msg);
 
         selectedModel && setSelectedModel(selectedModel);
         excludePatterns && setExcludePatterns(excludePatterns);
-        template && setTemplate(template);
+        prompt && setPrompt(prompt);
       });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("message", (event) => {
+      const message = event.data;
+      switch (message.command) {
+        case MessageCommands.LEARN:
+          setLearning(false);
+          break;
+      }
+    });
   }, []);
 
   return (
@@ -116,21 +142,22 @@ export const App: FunctionComponent<
           onClick={() => setIsCollapsed(!isCollapsed)}
           appearance="secondary"
         >
-          {isCollapsed ? "Show Settings" : "Hide Settings"}
+          {isCollapsed ? "Show settings" : "Hide settings"}
         </VSCodeButton>
+
+        {learningResult && (
+          <VSCodeButton
+            onClick={() =>
+              setIsLearningResultCollapsed(!isLearningResultCollapsed)
+            }
+            appearance="secondary"
+          >
+            {isLearningResultCollapsed
+              ? "Show learning result"
+              : "Hide learning result"}
+          </VSCodeButton>
+        )}
       </div>
-
-      <VSCodeDivider />
-
-      <Markdown>{learningResult}</Markdown>
-
-      {/* <div className="app__actions">
-        <VSCodeButton appearance="primary" onClick={scan} disabled={scanning}>
-          {scanning ? "Scanning..." : "Scan"}
-        </VSCodeButton>
-
-       
-      </div> */}
 
       <div className="settings">
         {!isCollapsed && (
@@ -173,14 +200,14 @@ export const App: FunctionComponent<
             <div className="template-column">
               <div className="settings__field">
                 <label className="settings__field-label">
-                  Storybook template:
+                  System prompt:
                 </label>
                 <VSCodeTextArea
-                  value={template}
-                  onChange={handleTemplateChange}
+                  value={prompt}
+                  onChange={handlePromptChange}
                   rows={14}
                   cols={50}
-                  placeholder="Enter storybook template"
+                  placeholder="Enter system prompt"
                 />
               </div>
             </div>
@@ -188,7 +215,63 @@ export const App: FunctionComponent<
         )}
       </div>
 
-      <VSCodeDivider />
+      {learningResult && (
+        <>
+          {!isLearningResultCollapsed && (
+            <>
+              <VSCodeDivider />
+              <div className="learning-result">
+                <Markdown>{learningResult}</Markdown>
+              </div>
+            </>
+          )}
+
+          <VSCodeDivider />
+
+          <div className="app__actions">
+            <VSCodeButton
+              appearance="primary"
+              onClick={generate}
+              disabled={generating}
+            >
+              {generating ? "Generating..." : "Generate codemod"}
+            </VSCodeButton>
+
+            {codemod && (
+              <VSCodeButton
+                onClick={() => setIsCodeModCollapsed(!isCodemodCollapsed)}
+                appearance="secondary"
+              >
+                {isCodemodCollapsed
+                  ? "Show codemod script"
+                  : "Hide codemod script"}
+              </VSCodeButton>
+            )}
+          </div>
+        </>
+      )}
+
+      {codemod && (
+        <>
+          {!isCodemodCollapsed && (
+            <div className="codemod">
+              <Markdown>{codemod}</Markdown>
+            </div>
+          )}
+
+          <VSCodeDivider />
+
+          <div className="app__actions">
+            <VSCodeButton
+              appearance="primary"
+              onClick={scan}
+              disabled={scanning}
+            >
+              {scanning ? "Scanning..." : "Scan"}
+            </VSCodeButton>
+          </div>
+        </>
+      )}
 
       {message && <FileTree files={JSON.parse(message)} />}
     </div>

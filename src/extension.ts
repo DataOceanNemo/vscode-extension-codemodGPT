@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 import { customMessageHandlers } from './messaging';
 import { getWebviewContent } from './utils';
+import ChatGPTClient from './webview/utils/openAI';
 
 export function activate(context: vscode.ExtensionContext) {
-  let openWebviewDisposable = vscode.commands.registerCommand('vscode-codemodGPT.openWebview', () => {
+  let openWebviewDisposable = vscode.commands.registerCommand('vscode-codemodGPT.openWebview', async () => {
     const panel = vscode.window.createWebviewPanel(
       'react-webview',
       'codemodGPT',
@@ -14,8 +15,17 @@ export function activate(context: vscode.ExtensionContext) {
       }
     );
 
+    // Check if OpenAI API key is set
+    let openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      // Try to get it from VS Code's credential storage
+      openaiApiKey = await context.secrets.get('OPENAI_API_KEY');
+    }
+
+    const client = new ChatGPTClient(openaiApiKey, context.globalState.get('selectedModel'), context.globalState.get('prompt'));
+
     // define the message handlers
-    panel.webview.onDidReceiveMessage(customMessageHandlers(panel, context), undefined, context.subscriptions);
+    panel.webview.onDidReceiveMessage(customMessageHandlers(panel, context, client), undefined, context.subscriptions);
 
     panel.webview.html = getWebviewContent(context, panel.webview);
     panel.iconPath = vscode.Uri.joinPath(context.extensionUri, "icon.png");

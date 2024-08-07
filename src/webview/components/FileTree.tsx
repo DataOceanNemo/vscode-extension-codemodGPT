@@ -130,21 +130,10 @@ const FileTree: React.FC<Props> = ({ files }) => {
 
   const sendMessage = () => {
     setGenerating(true);
-    messageHandler.send(MessageCommands.GENERATE_REQUEST, {
+    messageHandler.send(MessageCommands.APPLY_REQUEST, {
       msg: JSON.stringify(checkedKeys),
     });
   };
-
-  useEffect(() => {
-    window.addEventListener("message", (event) => {
-      const message = event.data;
-      switch (message.command) {
-        case MessageCommands.GENERATE_RESULT:
-          setGenerating(false);
-          break;
-      }
-    });
-  }, []);
 
   return (
     <div className="file-tree__content">
@@ -155,7 +144,7 @@ const FileTree: React.FC<Props> = ({ files }) => {
           onClick={sendMessage}
           disabled={selectedFilesCount === 0 || generating}
         >
-          Generate stories for selected {selectedFilesCount} files
+          Apply codemod to selected {selectedFilesCount} files
         </VSCodeButton>
 
         <VSCodeButton onClick={clearSelections} appearance="secondary">

@@ -1,53 +1,52 @@
 import OpenAI from "openai";
+import { ChatCompletionMessageParam } from "openai/resources";
+import { defaultPrompt } from "./constants";
 
+class ChatGPTClient {
+  openaiApiKey?: string;
+  model: string;
+  #contextArray: ChatCompletionMessageParam[];
 
-export type ConvertType = {
-  openaiApiKey: string;
-  selectedModel: string;
-  prompt: string;
-  question: string;
-};
+  constructor(openaiApiKey?: string, model = "gpt-3.5-turbo", prompt = defaultPrompt) {
+    this.openaiApiKey = openaiApiKey;
+    this.model = model;
+    this.#contextArray = [{
+      role: "system",
+      content: prompt,
+    }];
+  }
 
+  async ask(question: string) {
+    const openai = new OpenAI({
+      apiKey: this.openaiApiKey,
+    });
 
-export const askChatGPT = async ({ prompt, openaiApiKey, selectedModel, question }: ConvertType) => {
-  const openai = new OpenAI({
-    apiKey: openaiApiKey,
-  });
+    // Add the user's question to the context array
+    this.#contextArray.push({
+      role: "user",
+      content: question,
+    });
 
-  const response = await openai.chat.completions.create({
-    model: selectedModel,
-    messages: [
-      {
-        role: "system",
-        content: prompt,
-      },
-      {
-        role: "user",
-        content: question,
-      },
-    ],
-    temperature: 0.5,
-    top_p: 1.0,
-    frequency_penalty: 0.5,
-    presence_penalty: 0.1,
-    stream: false,
-  });
+    const response = await openai.chat.completions.create({
+      model: this.model,
+      messages: this.#contextArray,
+      temperature: 0.5,
+      top_p: 1.0,
+      frequency_penalty: 0.5,
+      presence_penalty: 0.1,
+      stream: false,
+    });
 
-  return response.choices[0].message.content;
+    const assistantResponse = response.choices[0].message.content;
+    if (assistantResponse) {
+      this.#contextArray.push({
+        role: "assistant",
+        content: assistantResponse,
+      });
+    }
+
+    return assistantResponse;
+  }
 }
 
-
-type WhatDidYouLearnType = {
-  question: string;
-  openaiApiKey: string;
-  selectedModel?: string;
-};
-
-export const whatDidYouLearn = async ({ question, openaiApiKey, selectedModel = 'gpt-3.5-turbo' }: WhatDidYouLearnType) => {
-  const prompt = `You are a software engineer who will design codemod tasks. 
-  You will be given a 'git diff' output and you will analyze it and write a concise summary of what you learned from the diff. 
-  The summary should be in bullet points. Please keep it short and precise. 
-  Note: please try to detect file renames, when a file deleted has the same content as the file created.`;
-
-  return askChatGPT({ prompt, openaiApiKey, selectedModel, question: `Git diff result:\n${question}` });
-}
+export default ChatGPTClient;
