@@ -135,6 +135,17 @@ const FileTree: React.FC<Props> = ({ files }) => {
     });
   };
 
+  useEffect(() => {
+    window.addEventListener("message", (event) => {
+      const message = event.data;
+      switch (message.command) {
+        case MessageCommands.APPLY_RESULT:
+          setGenerating(false);
+          break;
+      }
+    });
+  }, []);
+
   return (
     <div className="file-tree__content">
       <p>Total files: {totalFiles}</p>
