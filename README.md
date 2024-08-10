@@ -4,7 +4,7 @@
 
 # codemodGPT
 
-This vscode extension learns from existing codemod example, and apply the same to selected files.
+This vscode extension learns from existing git staged codemod example, and apply the same to selected files.
 
 ## Demo
 

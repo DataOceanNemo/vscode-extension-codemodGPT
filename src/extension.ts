@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
       openaiApiKey = await context.secrets.get('OPENAI_API_KEY');
     }
 
-    const client = new ChatGPTClient(openaiApiKey, context.globalState.get('selectedModel'), context.globalState.get('prompt'));
+    const client = new ChatGPTClient(openaiApiKey, context.globalState.get('selectedModel'), context.globalState.get('prompt_system'));
 
     // define the message handlers
     panel.webview.onDidReceiveMessage(customMessageHandlers(panel, context, client), undefined, context.subscriptions);

@@ -4,12 +4,13 @@ import * as path from 'path';
 import { join, relative } from 'path';
 import * as vscode from 'vscode';
 import { ExtensionContext, ExtensionMode, Uri, Webview } from 'vscode';
+import { defaultExcludePatterns, defaultMatchPattern } from './webview/utils/constants';
 
 // Get the workspace root path
 const workspaceFolder = vscode.workspace.workspaceFolders ? path.posix.normalize(vscode.workspace.workspaceFolders[0].uri.fsPath) : '';
 
-export const scanWorkspace = async (excludePatterns: string[]) => {
-  const allComponents = await vscode.workspace.findFiles('**/*.{tsx,ts}', `{${excludePatterns.join(',')}}`);
+export const scanWorkspace = async (matchPattern = defaultMatchPattern, excludePatterns = defaultExcludePatterns) => {
+  const allComponents = await vscode.workspace.findFiles(matchPattern, `{${excludePatterns.join(',')}}`);
 
   // Calculate relative paths
   const filePaths = allComponents.map(file => relative(workspaceFolder, (file as vscode.Uri).fsPath).replace(/\\/g, '/'));

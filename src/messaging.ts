@@ -1,7 +1,7 @@
 import { MessageHandlerData } from '@estruyf/vscode';
 import * as vscode from 'vscode';
 import { applyCodemod, getGitDiff, scanWorkspace, stripCodeBlockAnnotations } from './utils';
-import { MessageCommands } from './webview/utils/constants';
+import { defaultGeneratePrompt, MessageCommands } from './webview/utils/constants';
 import ChatGPTClient from './webview/utils/openAI';
 
 
@@ -44,14 +44,16 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
           requestId,
           payload: JSON.stringify({
             selectedModel: context.globalState.get('selectedModel'),
+            matchPattern: context.globalState.get('matchPattern'),
             excludePatterns: context.globalState.get('excludePatterns'),
-            prompt: context.globalState.get('prompt'),
+            prompt_system: context.globalState.get('prompt_system'),
+            prompt_generate: context.globalState.get('prompt_generate'),
           })
         } as MessageHandlerData<string>);
         break;
 
       case MessageCommands.SCAN:
-        const filePaths = await scanWorkspace(payload.excludePatterns.split('\n'));
+        const filePaths = await scanWorkspace(context.globalState.get('matchPattern'), (context.globalState.get('excludePatterns') as string).split('\n'));
 
         // Send a response back to the webview
         panel.webview.postMessage({
@@ -82,19 +84,7 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
       case MessageCommands.GENERATE:
         vscode.window.showInformationMessage('Generating codemod script...');
 
-        const codemod = await client.ask(`Can you write a codemod script that applies the same changes to other files?
-          The codemod should have conditions to skip files/folders that already have the change applied.
-          The codemod should derive a pattern from the git diff output, eg. try to detect file renames, relationship between string values and filenames, etc.
-          Try your best to not use hardcoded strings, eg. file names, folder names, replace strings. In most case, these values can be derived from applicable files/folders/code content.
-          Try to throw any errors caught in the codemod script.
-          The codemod should skip the files in git diff, and other files/folders that already match the codemod output pattern. 
-          Eg. if it's creating a new file type *.stories.tsx, skip when there is already a *.stories.tsx file in the folder.
-          The codemod should have 2 main functions: 
-          1. scan(): scan the workspaceFiles(array of file paths passed in as argument) and find the applicable files/folders
-          2. apply(): apply the codemod changes to the output files/folders from scan()
-          Please try to use regex to generalize the pattern.
-          Please make sure the code is ready to run in the terminal: "node codemod.js --workspaceFiles workspaceFiles".
-          Can you only response in js code format? no need to add any other text above or below the code.`);
+        const codemod = await client.ask(defaultGeneratePrompt);
 
         panel.webview.postMessage({
           command,
@@ -111,8 +101,10 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
       case MessageCommands.STORE_DATA:
         // Store data
         payload.selectedModel && context.globalState.update('selectedModel', payload.selectedModel);
+        payload.matchPattern && context.globalState.update('matchPattern', payload.matchPattern);
         payload.excludePatterns && context.globalState.update('excludePatterns', payload.excludePatterns);
-        payload.prompt && context.globalState.update('prompt', payload.prompt);
+        payload.prompt_system && context.globalState.update('prompt_system', payload.prompt_system);
+        payload.prompt_generate && context.globalState.update('prompt_generate', payload.prompt_generate);
 
         if (payload.selectedModel) {
           client.model = payload.selectedModel;

@@ -5,6 +5,7 @@ import {
   VSCodeDropdown,
   VSCodeOption,
   VSCodeTextArea,
+  VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react";
 import * as React from "react";
 import {
@@ -18,6 +19,8 @@ import FileTree from "./components/FileTree";
 import "./styles.css";
 import {
   defaultExcludePatterns,
+  defaultGeneratePrompt,
+  defaultMatchPattern,
   defaultPrompt,
   MessageCommands,
   models,
@@ -39,10 +42,12 @@ export const App: FunctionComponent<
   const [generating, setGenerating] = useState<boolean>(false);
 
   const [selectedModel, setSelectedModel] = useState(models[0].value);
+  const [matchPattern, setMatchPattern] = useState(defaultMatchPattern);
   const [excludePatterns, setExcludePatterns] = useState(
     defaultExcludePatterns.join("\n")
   );
   const [prompt, setPrompt] = useState(defaultPrompt);
+  const [generatePrompt, setGeneratePrompt] = useState(defaultGeneratePrompt);
 
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isLearningResultCollapsed, setIsLearningResultCollapsed] =
@@ -53,6 +58,15 @@ export const App: FunctionComponent<
     setSelectedModel(e.target.value);
     messageHandler.send(MessageCommands.STORE_DATA, {
       selectedModel: e.target.value,
+    });
+  };
+
+  const handleMatchPatternsChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setMatchPattern(e.target.value);
+    messageHandler.send(MessageCommands.STORE_DATA, {
+      matchPattern: e.target.value,
     });
   };
 
@@ -68,19 +82,26 @@ export const App: FunctionComponent<
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
     messageHandler.send(MessageCommands.STORE_DATA, {
-      prompt: e.target.value,
+      prompt_system: e.target.value,
+    });
+  };
+
+  const handleGeneratePromptChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setGeneratePrompt(e.target.value);
+    messageHandler.send(MessageCommands.STORE_DATA, {
+      prompt_generate: e.target.value,
     });
   };
 
   const scan = () => {
     setMessage("");
     setScanning(true);
-    messageHandler
-      .request<string>(MessageCommands.SCAN, { excludePatterns })
-      .then((msg) => {
-        setMessage(msg);
-        setScanning(false);
-      });
+    messageHandler.request<string>(MessageCommands.SCAN).then((msg) => {
+      setMessage(msg);
+      setScanning(false);
+    });
   };
 
   const learn = () => {
@@ -105,11 +126,19 @@ export const App: FunctionComponent<
     messageHandler
       .request<string>(MessageCommands.GET_GLOBAL_STATE)
       .then((msg) => {
-        const { selectedModel, excludePatterns, prompt } = JSON.parse(msg);
+        const {
+          selectedModel,
+          matchPattern,
+          excludePatterns,
+          prompt_system,
+          prompt_generate,
+        } = JSON.parse(msg);
 
         selectedModel && setSelectedModel(selectedModel);
+        matchPattern && setMatchPattern(matchPattern);
         excludePatterns && setExcludePatterns(excludePatterns);
-        prompt && setPrompt(prompt);
+        prompt_system && setPrompt(prompt_system);
+        prompt_generate && setPrompt(prompt_generate);
       });
   }, []);
 
@@ -185,6 +214,17 @@ export const App: FunctionComponent<
 
               <div className="settings__field">
                 <label className="settings__field-label">
+                  Scan match pattern:
+                </label>
+                <VSCodeTextField
+                  value={matchPattern}
+                  onChange={handleMatchPatternsChange}
+                  placeholder="Enter scan patterns"
+                />
+              </div>
+
+              <div className="settings__field">
+                <label className="settings__field-label">
                   Scan exclude patterns:
                 </label>
                 <VSCodeTextArea
@@ -199,15 +239,25 @@ export const App: FunctionComponent<
 
             <div className="template-column">
               <div className="settings__field">
-                <label className="settings__field-label">
-                  System prompt:
-                </label>
+                <label className="settings__field-label">System prompt:</label>
                 <VSCodeTextArea
                   value={prompt}
                   onChange={handlePromptChange}
-                  rows={14}
+                  rows={6}
                   cols={50}
                   placeholder="Enter system prompt"
+                />
+              </div>
+              <div className="settings__field">
+                <label className="settings__field-label">
+                  Codemod generation prompt:
+                </label>
+                <VSCodeTextArea
+                  value={generatePrompt}
+                  onChange={handleGeneratePromptChange}
+                  rows={8}
+                  cols={50}
+                  placeholder="Enter codemod generation prompt"
                 />
               </div>
             </div>
