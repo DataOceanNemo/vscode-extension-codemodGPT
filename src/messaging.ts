@@ -46,8 +46,8 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
             selectedModel: context.globalState.get('selectedModel'),
             matchPattern: context.globalState.get('matchPattern'),
             excludePatterns: context.globalState.get('excludePatterns'),
-            prompt_system: context.globalState.get('prompt_system'),
-            prompt_generate: context.globalState.get('prompt_generate'),
+            promptSystem: context.globalState.get('promptSystem'),
+            promptGenerate: context.globalState.get('promptGenerate'),
           })
         } as MessageHandlerData<string>);
         break;
@@ -68,16 +68,26 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
 
         const gifDiff = await getGitDiff();
 
-        const answer = await client.ask(`Please sum up what did you learn in bulletin points and less than 100 words.
+        if (gifDiff) {
+          const answer = await client.ask(`Please sum up what did you learn in bulletin points and less than 100 words.
           Git diff result:\n${gifDiff}`);
 
-        panel.webview.postMessage({
-          command,
-          requestId,
-          payload: answer
-        } as MessageHandlerData<string>);
+          panel.webview.postMessage({
+            command,
+            requestId,
+            payload: answer
+          } as MessageHandlerData<string>);
 
-        vscode.window.showInformationMessage('Learning completed!');
+          vscode.window.showInformationMessage('Learning completed!');
+        } else {
+          vscode.window.showWarningMessage('No staged files found. Please stage your changes and try again.');
+
+          panel.webview.postMessage({
+            command,
+            requestId,
+            payload: ''
+          } as MessageHandlerData<string>);
+        }
 
         break;
 
@@ -89,7 +99,7 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
         panel.webview.postMessage({
           command,
           requestId,
-          payload: codemod
+          payload: stripCodeBlockAnnotations(codemod || 'No codemod script generated.')
         } as MessageHandlerData<string>);
 
         codemod && context.globalState.update('codemodScript', stripCodeBlockAnnotations(codemod));
@@ -103,8 +113,9 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
         payload.selectedModel && context.globalState.update('selectedModel', payload.selectedModel);
         payload.matchPattern && context.globalState.update('matchPattern', payload.matchPattern);
         payload.excludePatterns && context.globalState.update('excludePatterns', payload.excludePatterns);
-        payload.prompt_system && context.globalState.update('prompt_system', payload.prompt_system);
-        payload.prompt_generate && context.globalState.update('prompt_generate', payload.prompt_generate);
+        payload.promptSystem && context.globalState.update('promptSystem', payload.promptSystem);
+        payload.promptGenerate && context.globalState.update('promptGenerate', payload.promptGenerate);
+        payload.codemodScript && context.globalState.update('codemodScript', payload.codemodScript)
 
         if (payload.selectedModel) {
           client.model = payload.selectedModel;

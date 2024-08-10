@@ -1,4 +1,7 @@
 import { messageHandler } from "@estruyf/vscode/dist/client";
+import CodeMirror from "@uiw/react-codemirror";
+
+import { javascript } from "@codemirror/lang-javascript";
 import {
   VSCodeButton,
   VSCodeDivider,
@@ -25,7 +28,6 @@ import {
   MessageCommands,
   models,
 } from "./utils/constants";
-
 export interface IAppProps {}
 
 export const App: FunctionComponent<
@@ -82,7 +84,7 @@ export const App: FunctionComponent<
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
     messageHandler.send(MessageCommands.STORE_DATA, {
-      prompt_system: e.target.value,
+      promptSystem: e.target.value,
     });
   };
 
@@ -91,7 +93,7 @@ export const App: FunctionComponent<
   ) => {
     setGeneratePrompt(e.target.value);
     messageHandler.send(MessageCommands.STORE_DATA, {
-      prompt_generate: e.target.value,
+      promptGenerate: e.target.value,
     });
   };
 
@@ -130,15 +132,15 @@ export const App: FunctionComponent<
           selectedModel,
           matchPattern,
           excludePatterns,
-          prompt_system,
-          prompt_generate,
+          promptSystem,
+          promptGenerate,
         } = JSON.parse(msg);
 
         selectedModel && setSelectedModel(selectedModel);
         matchPattern && setMatchPattern(matchPattern);
         excludePatterns && setExcludePatterns(excludePatterns);
-        prompt_system && setPrompt(prompt_system);
-        prompt_generate && setPrompt(prompt_generate);
+        promptSystem && setPrompt(promptSystem);
+        promptGenerate && setGeneratePrompt(promptGenerate);
       });
   }, []);
 
@@ -150,6 +152,13 @@ export const App: FunctionComponent<
           setLearning(false);
           break;
       }
+    });
+  }, []);
+
+  const onCodeChange = React.useCallback((value: string) => {
+    setCodemod(value);
+    messageHandler.send(MessageCommands.STORE_DATA, {
+      codemodScript: value,
     });
   }, []);
 
@@ -305,7 +314,13 @@ export const App: FunctionComponent<
         <>
           {!isCodemodCollapsed && (
             <div className="codemod">
-              <Markdown>{codemod}</Markdown>
+              <CodeMirror
+                value={codemod}
+                height="300px"
+                theme="dark"
+                onChange={onCodeChange}
+                extensions={[javascript()]}
+              />
             </div>
           )}
 

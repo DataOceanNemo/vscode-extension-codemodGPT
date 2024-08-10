@@ -20,6 +20,9 @@ const config = [
     devtool: "source-map",
     resolve: {
       extensions: [".ts", ".js", ".tsx", ".jsx"],
+      alias: {
+        '@codemirror': path.resolve(__dirname, '../node_modules/@codemirror'),
+      },
     },
     module: {
       rules: [

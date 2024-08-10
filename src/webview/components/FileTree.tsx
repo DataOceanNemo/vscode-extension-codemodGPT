@@ -25,7 +25,7 @@ const buildTree = (
     key: "",
     title: "",
     children: [],
-    checked: true,
+    checked: false,
     indeterminate: false,
   };
 
@@ -44,7 +44,7 @@ const buildTree = (
           key: parts.slice(0, index + 1).join("/"),
           title: part,
           children: [],
-          checked: true,
+          checked: false,
           indeterminate: false,
         };
         current.children.push(node);
@@ -54,13 +54,13 @@ const buildTree = (
       current = node;
 
       // Add the folder keys to checkedKeys
-      if (index < parts.length - 1) {
-        checkedKeys.push(node.key);
-      }
+      // if (index < parts.length - 1) {
+      //   checkedKeys.push(node.key);
+      // }
     });
 
     // Add the file key to checkedKeys
-    checkedKeys.push(current.key);
+    // checkedKeys.push(current.key);
     fileCount++;
   });
 

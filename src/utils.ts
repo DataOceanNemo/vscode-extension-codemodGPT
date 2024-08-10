@@ -127,6 +127,6 @@ export const applyCodemod = async (codemod: string, fileNodes: string[]) => {
     throw error;
   } finally {
     // delete the codemod file from the workspace root
-    fs.unlinkSync(codemodFilePath);
+    // fs.unlinkSync(codemodFilePath);
   }
 };
