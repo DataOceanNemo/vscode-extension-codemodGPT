@@ -4,4 +4,8 @@ All notable changes to the "codemodGPT" extension will be documented in this fil
 
 ## [Version 0.0.1]
 
-- Initial release
+- Initial release.
+
+## [Version 0.0.2]
+
+- Update readme.

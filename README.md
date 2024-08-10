@@ -1,8 +1,4 @@
-<div style="text-align: center;">
-  <img src="icon.png" alt="Icon" width="200"/>
-</div>
-
-# codemodGPT
+# CodemodGPT
 
 This vscode extension learns from existing git staged codemod example, and apply the same to selected files.
 
