@@ -94,7 +94,7 @@ export const customMessageHandlers = (panel: vscode.WebviewPanel, context: vscod
       case MessageCommands.GENERATE:
         vscode.window.showInformationMessage('Generating codemod script...');
 
-        const codemod = await client.ask(defaultGeneratePrompt);
+        const codemod = await client.ask(context.globalState.get('promptGenerate') || defaultGeneratePrompt);
 
         panel.webview.postMessage({
           command,
