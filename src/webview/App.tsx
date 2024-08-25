@@ -307,12 +307,7 @@ export const App: FunctionComponent<
               </VSCodeButton>
             )}
           </div>
-        </>
-      )}
-
-      {codemod && (
-        <>
-          {!isCodemodCollapsed && (
+          {codemod && !isCodemodCollapsed && (
             <div className="codemod">
               <CodeMirror
                 value={codemod}
@@ -323,7 +318,11 @@ export const App: FunctionComponent<
               />
             </div>
           )}
+        </>
+      )}
 
+      {codemod && (
+        <>
           <VSCodeDivider />
 
           <div className="app__actions">
@@ -335,10 +334,10 @@ export const App: FunctionComponent<
               {scanning ? "Scanning..." : "Scan"}
             </VSCodeButton>
           </div>
+
+          {message && <FileTree files={JSON.parse(message)} />}
         </>
       )}
-
-      {message && <FileTree files={JSON.parse(message)} />}
     </div>
   );
 };

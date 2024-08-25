@@ -1,5 +1,5 @@
 import { messageHandler } from "@estruyf/vscode/dist/client";
-import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
+import { VSCodeButton, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react";
 import Tree from "rc-tree";
 import "rc-tree/assets/index.css";
 import * as React from "react";
@@ -146,6 +146,25 @@ const FileTree: React.FC<Props> = ({ files }) => {
     });
   }, []);
 
+  const [isAutoCleanUpChecked, setIsAutoCleanUpChecked] = useState(true);
+
+  const handleIsAutoCleanUpCheckboxChange = () => {
+    messageHandler.send(MessageCommands.STORE_DATA, {
+      autoCleanUp: !isAutoCleanUpChecked,
+    });
+
+    setIsAutoCleanUpChecked(!isAutoCleanUpChecked);
+  };
+
+  useEffect(() => {
+    messageHandler
+      .request<string>(MessageCommands.GET_GLOBAL_STATE)
+      .then((msg) => {
+        const { autoCleanUp } = JSON.parse(msg);
+        autoCleanUp !== undefined && setIsAutoCleanUpChecked(autoCleanUp);
+      });
+  }, []);
+
   return (
     <div className="file-tree__content">
       <p>Total files: {totalFiles}</p>
@@ -161,6 +180,13 @@ const FileTree: React.FC<Props> = ({ files }) => {
         <VSCodeButton onClick={clearSelections} appearance="secondary">
           Clear All Selections
         </VSCodeButton>
+
+        <VSCodeCheckbox
+          checked={isAutoCleanUpChecked}
+          onChange={handleIsAutoCleanUpCheckboxChange}
+        >
+          Remove codemod.js after applying.
+        </VSCodeCheckbox>
       </div>
       <Tree
         checkable
