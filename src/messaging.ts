@@ -2,7 +2,9 @@ import { MessageHandlerData } from "@estruyf/vscode";
 import * as vscode from "vscode";
 import {
   applyCodemod,
+  findExistingCodemodScripts,
   getGitDiff,
+  loadExistingFile,
   scanWorkspace,
   stripCodeBlockAnnotations,
 } from "./utils";
@@ -84,6 +86,17 @@ export const customMessageHandlers =
         } as MessageHandlerData<string>);
         break;
 
+      case MessageCommands.SCAN_CODEMOD:
+        const codemodScripts = await findExistingCodemodScripts();
+
+        // Send a response back to the webview
+        panel.webview.postMessage({
+          command,
+          requestId, // The requestId is used to identify the response
+          payload: JSON.stringify(codemodScripts),
+        } as MessageHandlerData<string>);
+        break;
+
       case MessageCommands.LEARN:
         vscode.window.showInformationMessage(
           "Learning from git diff output..."
@@ -139,6 +152,17 @@ export const customMessageHandlers =
           );
 
         vscode.window.showInformationMessage("Generation completed!");
+
+        break;
+
+      case MessageCommands.LOAD_EXISTING_CODEMOD:
+        const selectedCodemod = await loadExistingFile(payload.file);
+
+        panel.webview.postMessage({
+          command,
+          requestId,
+          payload: selectedCodemod,
+        } as MessageHandlerData<string>);
 
         break;
 

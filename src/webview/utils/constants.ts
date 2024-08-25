@@ -1,4 +1,3 @@
-
 export const models = [
   { label: "GPT-3.5-turbo (default)", value: "gpt-3.5-turbo" },
   { label: "GPT-4o", value: "gpt-4o" },
@@ -52,15 +51,16 @@ The codemod should have 2 main functions:
 
 Please try to use regex to generalize the pattern.
 Please make sure the code is ready to run in the terminal: "node codemod.js --workspaceFiles workspaceFiles".
-Can you only response in js code format? no need to add any other text above or below the code.`
+Can you only response in js code format? no need to add any other text above or below the code.`;
 
 export enum MessageCommands {
-  GET_GLOBAL_STATE = 'GET_GLOBAL_STATE',
-  SCAN = 'SCAN',
-  STORE_DATA = 'STORE_DATA',
-  APPLY_REQUEST = 'APPLY_REQUEST',
-  APPLY_RESULT = 'APPLY_RESULT',
-  LEARN = 'LEARN',
-  GENERATE = 'GENERATE',
+  GET_GLOBAL_STATE = "GET_GLOBAL_STATE",
+  SCAN = "SCAN",
+  STORE_DATA = "STORE_DATA",
+  APPLY_REQUEST = "APPLY_REQUEST",
+  APPLY_RESULT = "APPLY_RESULT",
+  LEARN = "LEARN",
+  GENERATE = "GENERATE",
+  SCAN_CODEMOD = "SCAN_CODEMOD",
+  LOAD_EXISTING_CODEMOD = "LOAD_EXISTING_CODEMOD",
 }
-

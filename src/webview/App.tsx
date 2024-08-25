@@ -28,6 +28,7 @@ import {
   MessageCommands,
   models,
 } from "./utils/constants";
+import { Divider } from "@vscode/webview-ui-toolkit";
 export interface IAppProps {}
 
 export const App: FunctionComponent<
@@ -56,10 +57,45 @@ export const App: FunctionComponent<
     useState(false);
   const [isCodemodCollapsed, setIsCodeModCollapsed] = useState(false);
 
+  const [isUseExistingCodemod, setIsUseExistingCodemod] = useState(false);
+  const [selectedCodemodScript, setSelectedCodemodScript] = useState("");
+  const [codemodScripts, setCodemodScripts] = useState<string[]>([]);
+  const [scanningForExistingCodemod, setScanningForExistingCodemod] =
+    useState(false);
+
   const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedModel(e.target.value);
     messageHandler.send(MessageCommands.STORE_DATA, {
       selectedModel: e.target.value,
+    });
+  };
+
+  const handleCodemodScriptChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    if (e.target.value) {
+      setSelectedCodemodScript(e.target.value);
+      setCodemod("");
+
+      messageHandler
+        .request<string>(MessageCommands.LOAD_EXISTING_CODEMOD, {
+          file: e.target.value,
+        })
+        .then((msg) => {
+          setCodemod(msg);
+        });
+    }
+  };
+
+  const handleUseExistingCodemod = () => {
+    setIsUseExistingCodemod(true);
+    setScanningForExistingCodemod(true);
+    setLearningResult("");
+    setSelectedCodemodScript("");
+    setCodemod("");
+    messageHandler.request<string>(MessageCommands.SCAN_CODEMOD).then((msg) => {
+      setCodemodScripts(JSON.parse(msg));
+      setScanningForExistingCodemod(false);
     });
   };
 
@@ -107,7 +143,9 @@ export const App: FunctionComponent<
   };
 
   const learn = () => {
+    setIsUseExistingCodemod(false);
     setLearningResult("");
+    setCodemod("");
     setLearning(true);
     messageHandler.request<string>(MessageCommands.LEARN).then((msg) => {
       setLearningResult(msg);
@@ -172,8 +210,19 @@ export const App: FunctionComponent<
       </p>
 
       <div className="app__actions">
-        <VSCodeButton appearance="primary" onClick={learn} disabled={learning}>
+        <VSCodeButton
+          appearance={isUseExistingCodemod ? "secondary" : "primary"}
+          onClick={learn}
+          disabled={learning}
+        >
           {learning ? "Learning..." : "Learn from git diff"}
+        </VSCodeButton>
+
+        <VSCodeButton
+          onClick={() => handleUseExistingCodemod()}
+          appearance={isUseExistingCodemod ? "primary" : "secondary"}
+        >
+          Use existing codemod
         </VSCodeButton>
 
         <VSCodeButton
@@ -274,9 +323,45 @@ export const App: FunctionComponent<
         )}
       </div>
 
-      {learningResult && (
+      {isUseExistingCodemod && (
         <>
-          {!isLearningResultCollapsed && (
+          <VSCodeDivider />
+
+          <div className="app__actions">
+            {scanningForExistingCodemod ? (
+              "Scanning for existing codemod scripts (files in the root with pattern: `codemod*.js`)..."
+            ) : codemodScripts.length > 0 ? (
+              <div className="app__actions-item">
+                <label
+                  htmlFor="codemod-dropdown"
+                  className="app__actions-label"
+                >
+                  Select existing codemod (./codemod*.js):
+                </label>
+                <VSCodeDropdown
+                  id="codemod-dropdown"
+                  onChange={handleCodemodScriptChange}
+                  value={selectedCodemodScript}
+                  className="app__actions-dropdown"
+                >
+                  <VSCodeOption value=""></VSCodeOption>
+                  {codemodScripts.map((filename) => (
+                    <VSCodeOption key={filename} value={filename}>
+                      {filename}
+                    </VSCodeOption>
+                  ))}
+                </VSCodeDropdown>
+              </div>
+            ) : (
+              "No existing codemod scripts (./codemod*.js) found."
+            )}
+          </div>
+        </>
+      )}
+
+      {(learningResult || codemod) && (
+        <>
+          {!isUseExistingCodemod && !isLearningResultCollapsed && (
             <>
               <VSCodeDivider />
               <div className="learning-result">
@@ -288,13 +373,15 @@ export const App: FunctionComponent<
           <VSCodeDivider />
 
           <div className="app__actions">
-            <VSCodeButton
-              appearance="primary"
-              onClick={generate}
-              disabled={generating}
-            >
-              {generating ? "Generating..." : "Generate codemod"}
-            </VSCodeButton>
+            {!isUseExistingCodemod && (
+              <VSCodeButton
+                appearance="primary"
+                onClick={generate}
+                disabled={generating}
+              >
+                {generating ? "Generating..." : "Generate codemod"}
+              </VSCodeButton>
+            )}
 
             {codemod && (
               <VSCodeButton

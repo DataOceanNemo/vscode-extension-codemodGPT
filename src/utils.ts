@@ -31,6 +31,24 @@ export const scanWorkspace = async (
   return filePaths;
 };
 
+export const findExistingCodemodScripts = async () => {
+  const allFiles = await vscode.workspace.findFiles("codemod*.js", "**/*/**");
+
+  // Calculate relative paths
+  const filePaths = allFiles.map((file) =>
+    relative(workspaceFolder, (file as vscode.Uri).fsPath).replace(/\\/g, "/")
+  );
+
+  return filePaths;
+};
+
+export const loadExistingFile = async (filePath: string) => {
+  const uri = Uri.file(join(workspaceFolder, filePath));
+  const document = await vscode.workspace.openTextDocument(uri);
+
+  return document.getText();
+};
+
 export const getWebviewContent = (
   context: ExtensionContext,
   webview: Webview

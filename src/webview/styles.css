@@ -18,6 +18,19 @@ h1 {
   margin-top: 10px;
 }
 
+.app__actions-item {
+  display: flex;
+  align-items: center;
+}
+
+.app__actions-label {
+  margin-right: 10px;
+}
+
+.app__actions-dropdown {
+  flex: 1;
+}
+
 .app__error {
   color: var(--vscode-editorError-foreground);
 }
@@ -30,7 +43,8 @@ h1 {
   margin: 15px 0;
 }
 
-.codemod, .learning-result {
+.codemod,
+.learning-result {
   margin: 15px 0;
   border: 1px solid var(--vscode-editorWidget-border);
   border-radius: 4px;
@@ -75,7 +89,8 @@ h1 {
 
 /* Media query for smaller screens */
 @media (max-width: 768px) {
-  .column, .template-column {
+  .column,
+  .template-column {
     flex: 0 0 95%;
   }
 }
